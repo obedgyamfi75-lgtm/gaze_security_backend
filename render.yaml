@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: gaze-security-backend
+    runtime: docker
+    dockerfilePath: ./docker/app/Dockerfile.dev
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: FLASK_ENV
+        value: development
+      - key: FLASK_APP
+        value: run.py
+      - key: SECRET_KEY
+        sync: false        # Set manually in Render dashboard
+      - key: DATABASE_URL
+        sync: false        # Set manually in Render dashboard
+      - key: REDIS_URL
+        sync: false        # Set manually in Render dashboard
+      - key: CORS_ORIGINS
+        sync: false        # Set after frontend deploys
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: EVIDENCE_PATH
+        value: /app/evidence
+      - key: LOG_LEVEL
+        value: INFO
