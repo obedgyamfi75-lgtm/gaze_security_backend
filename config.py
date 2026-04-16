@@ -25,7 +25,7 @@ class SecurityConfig(BaseModel):
     session_lifetime_minutes: int = 15
     session_absolute_timeout_hours: int = 8
     session_cookie_httponly: bool = True
-    session_cookie_samesite: str = "Strict"
+    session_cookie_samesite: str = "None"
 
     mfa_required_roles: list = ["superadmin", "admin", "security_lead"]
     totp_issuer: str = "GAZESecurity"
@@ -167,7 +167,8 @@ class Config(BaseSettings):
 
 class DevelopmentConfig(Config):
     LOG_LEVEL: str = "DEBUG"
-    SESSION_COOKIE_SECURE: bool = False
+    SESSION_COOKIE_SECURE: bool = True
+    SESSION_COOKIE_SAMESITE: str = "None"
     PREFERRED_URL_SCHEME: str = "http"
 
     model_config = {
