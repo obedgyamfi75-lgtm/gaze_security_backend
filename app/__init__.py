@@ -209,7 +209,7 @@ def register_security_middleware(app: Flask) -> None:
         
         # Host header validation
         allowed_hosts = app.config.get('ALLOWED_HOSTS', 'localhost').split(',')
-        if request.host.split(':')[0] not in allowed_hosts:
+        if request.path != '/health' and request.host.split(':')[0] not in allowed_hosts:
             logger.warning("invalid_host_header", host=request.host)
             return Response("Invalid host header", status=400)
     
