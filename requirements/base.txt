@@ -1,0 +1,65 @@
+# =============================================================================
+# GAZE Security Platform - Base Requirements
+# Updated: January 2026 with latest stable versions
+# =============================================================================
+
+# Web Framework
+Flask>=3.1.0,<4.0.0                    # Latest: 3.1.2 (Aug 2025)
+gunicorn>=23.0.0,<24.0.0               # Latest: 23.0.0 (Aug 2024)
+Werkzeug>=3.1.0,<4.0.0                 # Latest: 3.1.x (required by Flask 3.1)
+
+# Database
+SQLAlchemy>=2.0.23,<3.0.0              # Latest: 2.0.45 (Dec 2025)
+Flask-SQLAlchemy>=3.1.1,<4.0.0         # Latest: 3.1.1 (stable)
+Flask-Migrate>=4.0.5,<5.0.0            # Latest: 4.1.0 (Jan 2025)
+psycopg2-binary>=2.9.9,<3.0.0          # PostgreSQL adapter
+alembic>=1.13.0,<2.0.0                 # Database migrations
+
+# Session & Cache
+redis>=5.0.0,<8.0.0                    # Latest: 7.1.0 (supports Python 3.10+)
+Flask-Session>=0.5.0,<1.0.0            # Server-side sessions
+
+# Authentication
+Flask-Login>=0.6.3,<1.0.0              # Latest stable
+argon2-cffi>=23.1.0,<26.0.0            # Latest: 25.1.0 (Jun 2025) - OWASP recommended
+pyotp>=2.9.0,<3.0.0                    # TOTP for MFA
+qrcode>=7.4.2,<8.0.0                   # QR code generation
+
+# Security
+Flask-Talisman>=1.1.0,<2.0.0           # Security headers
+Flask-WTF>=1.2.1,<2.0.0                # Latest: 1.2.2 - CSRF protection
+Flask-Limiter>=3.5.0,<5.0.0            # Latest: 4.1.1 (Dec 2025)
+Flask-Cors>=4.0.0,<6.0.0               # CORS for API (latest: 5.0.0)
+cryptography>=41.0.0,<47.0.0           # Latest: 46.0.3 (Oct 2025)
+bleach>=6.1.0,<7.0.0                   # HTML sanitization
+python-dotenv>=1.0.0,<2.0.0            # Environment variables
+
+# Input Validation
+pydantic>=2.5.0,<3.0.0                 # Latest: 2.12.x (Nov 2025)
+pydantic-settings>=2.1.0,<3.0.0        # Settings management
+email-validator>=2.1.0,<3.0.0          # Email validation
+python-magic>=0.4.27,<1.0.0            # File type detection
+
+# Excel Export
+openpyxl>=3.1.2,<4.0.0                 # Excel read/write
+xlsxwriter>=3.1.9,<4.0.0               # Excel writing
+
+# Word/PDF Generation
+python-docx>=1.1.0,<2.0.0              # Word documents
+Jinja2>=3.1.2,<4.0.0                   # Templating
+WeasyPrint>=60.0,<70.0.0               # Latest: 63.x (Dec 2025) - PDF generation
+
+# Password Strength
+zxcvbn>=4.4.28,<5.0.0                  # Password strength checking
+
+# Utilities
+structlog>=23.2.0,<25.0.0              # Structured logging
+python-dateutil>=2.8.2,<3.0.0          # Date utilities
+humanize>=4.9.0,<5.0.0                 # Human-readable formats
+requests>=2.31.0,<3.0.0                # HTTP client
+
+# Async HTTP (for GAZERecon)
+aiohttp>=3.9.0,<4.0.0                  # Latest: 3.13.2 (Oct 2025)
+
+# Async tasks (optional)
+celery>=5.3.4,<6.0.0                   # Latest: 5.6.1 - Task queue

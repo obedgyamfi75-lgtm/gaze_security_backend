@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Audit Logs{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold">📜 Audit Logs</h1>
+    
+    <div class="card p-4">
+        <form method="GET" class="flex flex-wrap gap-4 items-end">
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Action</label>
+                <select name="action" class="px-4 py-2 rounded-lg">
+                    <option value="">All Actions</option>
+                    <option value="auth" {{ 'selected' if request.args.get('action') == 'auth' else '' }}>Authentication</option>
+                    <option value="user" {{ 'selected' if request.args.get('action') == 'user' else '' }}>User Management</option>
+                    <option value="asset" {{ 'selected' if request.args.get('action') == 'asset' else '' }}>Assets</option>
+                    <option value="assessment" {{ 'selected' if request.args.get('action') == 'assessment' else '' }}>Assessments</option>
+                    <option value="finding" {{ 'selected' if request.args.get('action') == 'finding' else '' }}>Findings</option>
+                </select>
+            </div>
+            <button type="submit" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg">Filter</button>
+            {% if request.args %}
+            <a href="{{ url_for('admin.audit_logs') }}" class="text-gray-400 hover:text-white px-4 py-2">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+    
+    <div class="card overflow-hidden">
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Resource</th>
+                    <th>IP Address</th>
+                    <th>Outcome</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs.items %}
+                <tr class="hover:bg-gray-800 text-sm">
+                    <td class="text-gray-400 font-mono">{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ log.user_email or 'System' }}</td>
+                    <td>
+                        <code class="bg-gray-800 px-2 py-1 rounded text-xs">{{ log.action }}</code>
+                    </td>
+                    <td class="text-gray-400">
+                        {% if log.resource_type %}
+                        {{ log.resource_type }}{% if log.resource_id %}: {{ log.resource_id|string|truncate(8, True, '') }}{% endif %}
+                        {% else %}-{% endif %}
+                    </td>
+                    <td class="text-gray-400 font-mono">{{ log.ip_address or '-' }}</td>
+                    <td>
+                        <span class="{% if log.outcome == 'success' %}text-green-400{% elif log.outcome == 'failure' %}text-red-400{% else %}text-yellow-400{% endif %}">
+                            {{ log.outcome }}
+                        </span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-gray-500 py-8">No audit logs found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if logs.pages > 1 %}
+    <div class="flex justify-center gap-2">
+        {% if logs.has_prev %}
+        <a href="{{ url_for('admin.audit_logs', page=logs.prev_num, **request.args) }}" class="px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-700">← Previous</a>
+        {% endif %}
+        <span class="px-4 py-2 text-gray-400">Page {{ logs.page }} of {{ logs.pages }}</span>
+        {% if logs.has_next %}
+        <a href="{{ url_for('admin.audit_logs', page=logs.next_num, **request.args) }}" class="px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-700">Next →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}{{ assessment.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-start">
+        <div>
+            <a href="{{ url_for('assessments.index') }}" class="text-gray-400 hover:text-white text-sm">← Back to Assessments</a>
+            <h1 class="text-2xl font-bold mt-2">{{ assessment.name }}</h1>
+            <div class="flex items-center gap-3 mt-2">
+                <span class="px-2 py-1 text-xs rounded 
+                    {% if assessment.status.value == 'completed' %}bg-green-600
+                    {% elif assessment.status.value == 'in_progress' %}bg-yellow-600 text-black
+                    {% else %}bg-blue-600{% endif %}">
+                    {{ assessment.status.value.replace('_', ' ').title() }}
+                </span>
+                <span class="text-gray-400">{{ assessment.assessment_type.value.replace('_', ' ').title() }}</span>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            {% if assessment.status.value == 'planned' %}
+            <form method="POST" action="{{ url_for('assessments.start', assessment_id=assessment.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg">▶ Start</button>
+            </form>
+            {% elif assessment.status.value == 'in_progress' %}
+            <form method="POST" action="{{ url_for('assessments.complete', assessment_id=assessment.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg">✓ Complete</button>
+            </form>
+            {% endif %}
+            <a href="{{ url_for('findings.create') }}?assessment_id={{ assessment.id }}" class="btn-primary px-4 py-2 rounded-lg">+ Add Finding</a>
+        </div>
+    </div>
+    
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {% set counts = assessment.findings_count %}
+        <div class="card p-4 text-center">
+            <p class="text-2xl font-bold text-red-400">{{ counts.critical }}</p>
+            <p class="text-gray-400 text-sm">Critical</p>
+        </div>
+        <div class="card p-4 text-center">
+            <p class="text-2xl font-bold text-orange-400">{{ counts.high }}</p>
+            <p class="text-gray-400 text-sm">High</p>
+        </div>
+        <div class="card p-4 text-center">
+            <p class="text-2xl font-bold text-yellow-400">{{ counts.medium }}</p>
+            <p class="text-gray-400 text-sm">Medium</p>
+        </div>
+        <div class="card p-4 text-center">
+            <p class="text-2xl font-bold text-green-400">{{ counts.low }}</p>
+            <p class="text-gray-400 text-sm">Low</p>
+        </div>
+        <div class="card p-4 text-center">
+            <p class="text-2xl font-bold text-blue-400">{{ counts.informational }}</p>
+            <p class="text-gray-400 text-sm">Info</p>
+        </div>
+    </div>
+    
+    <!-- Details -->
+    <div class="grid lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2">
+            <div class="card p-6">
+                <h2 class="text-lg font-semibold mb-4">Details</h2>
+                <dl class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <dt class="text-gray-400 text-sm">Asset</dt>
+                        <dd><a href="{{ url_for('assets.view', asset_id=assessment.asset_id) }}" class="text-green-400 hover:underline">{{ assessment.asset.name if assessment.asset else '-' }}</a></dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-400 text-sm">Assigned To</dt>
+                        <dd>{{ assessment.assigned_to.full_name if assessment.assigned_to else 'Unassigned' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-400 text-sm">Created By</dt>
+                        <dd>{{ assessment.created_by.full_name if assessment.created_by else '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-400 text-sm">Created</dt>
+                        <dd>{{ assessment.created_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+                    </div>
+                </dl>
+                {% if assessment.description %}
+                <div class="mt-4 pt-4 border-t border-gray-700">
+                    <p class="text-gray-300">{{ assessment.description }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold mb-4">Export</h2>
+            <div class="space-y-2">
+                <form method="POST" action="{{ url_for('reports.export_excel') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="assessment_id" value="{{ assessment.id }}">
+                    <button type="submit" class="w-full bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-left">📊 Export to Excel</button>
+                </form>
+                <form method="POST" action="{{ url_for('reports.export_word') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="assessment_id" value="{{ assessment.id }}">
+                    <button type="submit" class="w-full bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-left">📄 Export to Word</button>
+                </form>
+                <form method="POST" action="{{ url_for('reports.export_pdf') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="assessment_id" value="{{ assessment.id }}">
+                    <button type="submit" class="w-full bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-left">📑 Export to PDF</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Findings -->
+    <div class="card p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold">Findings ({{ assessment.findings|length }})</h2>
+            <a href="{{ url_for('findings.create') }}?assessment_id={{ assessment.id }}" class="text-green-400 hover:underline text-sm">+ Add Finding</a>
+        </div>
+        
+        {% if assessment.findings %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Severity</th>
+                    <th>Status</th>
+                    <th>SLA</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for finding in assessment.findings|sort(attribute='severity') %}
+                <tr class="hover:bg-gray-800 cursor-pointer" onclick="window.location='{{ url_for('findings.view', finding_id=finding.id) }}'">
+                    <td class="font-medium">{{ finding.title }}</td>
+                    <td>
+                        <span class="px-2 py-1 text-xs font-bold rounded severity-{{ finding.severity.value }}">
+                            {{ finding.severity.value.upper() }}
+                        </span>
+                    </td>
+                    <td class="status-{{ finding.status.value }}">{{ finding.status.value.replace('_', ' ').title() }}</td>
+                    <td class="{% if finding.is_overdue %}text-red-400{% endif %}">{{ finding.sla_status }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-gray-500 text-center py-8">No findings yet</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

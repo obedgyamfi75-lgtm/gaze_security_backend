@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold">👥 Users</h1>
+        <a href="{{ url_for('admin.create_user') }}" class="btn-primary px-4 py-2 rounded-lg">+ Add User</a>
+    </div>
+    
+    <div class="card overflow-hidden">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>MFA</th>
+                    <th>Status</th>
+                    <th>Last Login</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users.items %}
+                <tr class="hover:bg-gray-800">
+                    <td class="font-medium">{{ user.full_name }}</td>
+                    <td class="text-gray-400">{{ user.email }}</td>
+                    <td>
+                        <span class="px-2 py-1 text-xs rounded 
+                            {% if user.role == 'superadmin' %}bg-purple-600
+                            {% elif user.role == 'admin' %}bg-blue-600
+                            {% elif user.role == 'security_lead' %}bg-green-600
+                            {% else %}bg-gray-600{% endif %}">
+                            {{ user.role.replace('_', ' ').title() }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if user.mfa_enabled %}
+                        <span class="text-green-400">✓ Enabled</span>
+                        {% else %}
+                        <span class="text-gray-500">Disabled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.is_active %}
+                        <span class="text-green-400">Active</span>
+                        {% else %}
+                        <span class="text-red-400">Inactive</span>
+                        {% endif %}
+                        {% if user.lockout_until %}
+                        <span class="text-yellow-400 text-xs">(Locked)</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-gray-400">{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}</td>
+                    <td class="text-right">
+                        <a href="{{ url_for('admin.view_user', user_id=user.id) }}" class="text-gray-400 hover:text-green-400">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if users.pages > 1 %}
+    <div class="flex justify-center gap-2">
+        {% if users.has_prev %}
+        <a href="{{ url_for('admin.users', page=users.prev_num) }}" class="px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-700">← Previous</a>
+        {% endif %}
+        <span class="px-4 py-2 text-gray-400">Page {{ users.page }} of {{ users.pages }}</span>
+        {% if users.has_next %}
+        <a href="{{ url_for('admin.users', page=users.next_num) }}" class="px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-700">Next →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

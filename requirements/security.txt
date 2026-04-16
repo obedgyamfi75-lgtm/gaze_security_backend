@@ -1,0 +1,15 @@
+# =============================================================================
+# GAZE Security Platform - Security Scanning Requirements
+# Updated: January 2026 with latest stable versions
+# =============================================================================
+
+# Dependency vulnerability scanning
+# Note: Using flexible versions to avoid packaging conflicts
+safety>=3.0.0,<4.0.0                   # Dependency vulnerability scanner
+pip-audit>=2.7.0,<3.0.0                # PyPI vulnerability scanner
+
+# Static analysis
+bandit>=1.7.6,<2.0.0                   # Security linter for Python
+
+# Secret detection
+detect-secrets>=1.4.0,<2.0.0           # Secret detection in code

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if assessment else 'New' }} Assessment{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="mb-6">
+        <a href="{{ url_for('assessments.index') }}" class="text-gray-400 hover:text-white">← Back to Assessments</a>
+    </div>
+    
+    <div class="card p-6">
+        <h1 class="text-2xl font-bold mb-6">{{ '✏️ Edit Assessment' if assessment else '➕ New Assessment' }}</h1>
+        
+        <form method="POST" class="space-y-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-300 mb-2">
+                    Assessment Name <span class="text-red-400">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="name" 
+                    name="name" 
+                    required
+                    maxlength="255"
+                    value="{{ assessment.name if assessment else '' }}"
+                    class="w-full px-4 py-2 rounded-lg"
+                    placeholder="e.g., Q1 2025 Vulnerability Assessment"
+                >
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <label for="asset_id" class="block text-sm font-medium text-gray-300 mb-2">
+                        Asset <span class="text-red-400">*</span>
+                    </label>
+                    <select id="asset_id" name="asset_id" required class="w-full px-4 py-2 rounded-lg">
+                        <option value="">Select asset...</option>
+                        {% for a in assets %}
+                        <option value="{{ a.id }}" {{ 'selected' if (assessment and assessment.asset_id == a.id) or request.args.get('asset_id') == a.id|string else '' }}>
+                            {{ a.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="assessment_type" class="block text-sm font-medium text-gray-300 mb-2">
+                        Type <span class="text-red-400">*</span>
+                    </label>
+                    <select id="assessment_type" name="assessment_type" required class="w-full px-4 py-2 rounded-lg">
+                        {% for t in types %}
+                        <option value="{{ t.value }}" {{ 'selected' if assessment and assessment.assessment_type == t else '' }}>
+                            {{ t.value.replace('_', ' ').title() }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div>
+                <label for="description" class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                <textarea 
+                    id="description" 
+                    name="description"
+                    rows="3"
+                    class="w-full px-4 py-2 rounded-lg"
+                    placeholder="Brief description of the assessment scope and objectives..."
+                >{{ assessment.description if assessment else '' }}</textarea>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <label for="scheduled_start" class="block text-sm font-medium text-gray-300 mb-2">Scheduled Start</label>
+                    <input 
+                        type="date" 
+                        id="scheduled_start" 
+                        name="scheduled_start"
+                        value="{{ assessment.scheduled_start.isoformat() if assessment and assessment.scheduled_start else '' }}"
+                        class="w-full px-4 py-2 rounded-lg"
+                    >
+                </div>
+                <div>
+                    <label for="scheduled_end" class="block text-sm font-medium text-gray-300 mb-2">Scheduled End</label>
+                    <input 
+                        type="date" 
+                        id="scheduled_end" 
+                        name="scheduled_end"
+                        value="{{ assessment.scheduled_end.isoformat() if assessment and assessment.scheduled_end else '' }}"
+                        class="w-full px-4 py-2 rounded-lg"
+                    >
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-4 pt-6 border-t border-gray-700">
+                <a href="{{ url_for('assessments.index') }}" class="px-6 py-2 text-gray-400 hover:text-white">Cancel</a>
+                <button type="submit" class="btn-primary px-6 py-2 rounded-lg">
+                    {{ 'Update Assessment' if assessment else 'Create Assessment' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold">📄 Reports</h1>
+    
+    <div class="grid md:grid-cols-3 gap-6">
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold mb-4">📊 Excel Export</h2>
+            <p class="text-gray-400 text-sm mb-4">Export findings to Excel spreadsheet with severity breakdown, SLA tracking, and summary statistics.</p>
+            <form method="POST" action="{{ url_for('reports.export_excel') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg">
+                    Export All Findings
+                </button>
+            </form>
+        </div>
+        
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold mb-4">📝 Word Report</h2>
+            <p class="text-gray-400 text-sm mb-4">Generate professional Word document with executive summary, detailed findings, and recommendations.</p>
+            <a href="{{ url_for('assessments.index') }}" class="block w-full bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-center">
+                Select Assessment →
+            </a>
+        </div>
+        
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold mb-4">📑 PDF Report</h2>
+            <p class="text-gray-400 text-sm mb-4">Generate PDF assessment report for stakeholder distribution.</p>
+            <a href="{{ url_for('assessments.index') }}" class="block w-full bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-center">
+                Select Assessment →
+            </a>
+        </div>
+    </div>
+    
+    <div class="card p-6">
+        <h2 class="text-lg font-semibold mb-4">Quick Stats</h2>
+        <div class="grid md:grid-cols-4 gap-4 text-center">
+            <div>
+                <p class="text-3xl font-bold text-red-400" id="critical-count">-</p>
+                <p class="text-gray-400 text-sm">Critical Open</p>
+            </div>
+            <div>
+                <p class="text-3xl font-bold text-orange-400" id="high-count">-</p>
+                <p class="text-gray-400 text-sm">High Open</p>
+            </div>
+            <div>
+                <p class="text-3xl font-bold text-yellow-400" id="overdue-count">-</p>
+                <p class="text-gray-400 text-sm">Overdue</p>
+            </div>
+            <div>
+                <p class="text-3xl font-bold text-green-400" id="closed-count">-</p>
+                <p class="text-gray-400 text-sm">Closed This Month</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+fetch('{{ url_for("dashboard.api_stats") }}')
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('critical-count').textContent = data.severity_counts.critical;
+        document.getElementById('high-count').textContent = data.severity_counts.high;
+        document.getElementById('overdue-count').textContent = data.overdue_findings;
+        document.getElementById('closed-count').textContent = data.closed_this_month;
+    });
+</script>
+{% endblock %}

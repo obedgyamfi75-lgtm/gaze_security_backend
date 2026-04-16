@@ -1,0 +1,108 @@
+# =============================================================================
+# GAZE Security Platform - Development Docker Compose
+# =============================================================================
+# HTTP-only development setup, safe for local dev, no production TLS
+# =============================================================================
+
+services:
+  # =============================================================================
+  # REVERSE PROXY - Caddy (HTTP only, dev)
+  # =============================================================================
+  caddy:
+    image: caddy:2-alpine
+    container_name: secops-caddy-dev
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/caddy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+    networks:
+      - frontend
+    depends_on:
+      app:
+        condition: service_healthy
+
+  # =============================================================================
+  # APPLICATION - Flask + Gunicorn (development)
+  # =============================================================================
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile.dev
+    container_name: secops-app-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app:rw
+      - ./templates:/app/report_templates:rw
+      - evidence_data:/app/evidence:rw
+    environment:
+      - FLASK_ENV=development
+      - FLASK_APP=run.py
+      - FLASK_DEBUG=1              # Never enable debug in container
+      - LOG_LEVEL=DEBUG
+      - SECRET_KEY=devsecretkeychangeme1234567890123456
+      - DATABASE_URL=postgresql://secops:secops@postgres:5432/secops
+      - REDIS_URL=redis://:redispass@redis:6379/0
+      - EVIDENCE_PATH=/app/evidence
+      - ALLOWED_HOSTS=localhost
+    command: [
+      "gunicorn", 
+      "--reload", 
+      "--bind", "0.0.0.0:8000", 
+      "--workers", "2",
+      "--worker-class", "gthread", 
+      "--threads", "4", 
+      "--timeout", "120",
+      "app:create_app()"
+    ]
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      - postgres
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # =============================================================================
+  # DATABASE - PostgreSQL (development)
+  # =============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: secops-postgres-dev
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=secops
+      - POSTGRES_PASSWORD=secops
+      - POSTGRES_DB=secops
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  # =============================================================================
+  # CACHE/SESSIONS - Redis (development)
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: secops-redis-dev
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass redispass --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - backend
+
+volumes:
+  evidence_data:
+  postgres_data:
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge

@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Findings{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold">🐛 Findings</h1>
+        <a href="{{ url_for('findings.create') }}" class="btn-primary px-4 py-2 rounded-lg">
+            + Add Finding
+        </a>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card p-4">
+        <form method="GET" class="flex flex-wrap gap-4 items-end">
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Severity</label>
+                <select name="severity" class="px-4 py-2 rounded-lg">
+                    <option value="">All Severities</option>
+                    {% for s in severities %}
+                    <option value="{{ s.value }}" {{ 'selected' if request.args.get('severity') == s.value else '' }}>
+                        {{ s.value.title() }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Status</label>
+                <select name="status" class="px-4 py-2 rounded-lg">
+                    <option value="">All Statuses</option>
+                    {% for s in statuses %}
+                    <option value="{{ s.value }}" {{ 'selected' if request.args.get('status') == s.value else '' }}>
+                        {{ s.value.replace('_', ' ').title() }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg">
+                Filter
+            </button>
+            {% if request.args %}
+            <a href="{{ url_for('findings.index') }}" class="text-gray-400 hover:text-white px-4 py-2">
+                Clear
+            </a>
+            {% endif %}
+        </form>
+    </div>
+    
+    <!-- Findings Table -->
+    <div class="card overflow-hidden">
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Severity</th>
+                    <th>Status</th>
+                    <th>CVSS</th>
+                    <th>Asset</th>
+                    <th>SLA</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for finding in findings.items %}
+                <tr class="hover:bg-gray-800 cursor-pointer" onclick="window.location='{{ url_for('findings.view', finding_id=finding.id) }}'">
+                    <td>
+                        <div class="font-medium max-w-md truncate">{{ finding.title }}</div>
+                        {% if finding.cwe_id or finding.cve_id %}
+                        <div class="text-gray-500 text-sm">
+                            {% if finding.cwe_id %}{{ finding.cwe_id }}{% endif %}
+                            {% if finding.cwe_id and finding.cve_id %} • {% endif %}
+                            {% if finding.cve_id %}{{ finding.cve_id }}{% endif %}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="px-2 py-1 text-xs font-bold rounded severity-{{ finding.severity.value }}">
+                            {{ finding.severity.value.upper() }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-{{ finding.status.value }}">
+                            {{ finding.status.value.replace('_', ' ').title() }}
+                        </span>
+                    </td>
+                    <td class="text-gray-400">
+                        {{ finding.cvss_score if finding.cvss_score else '-' }}
+                    </td>
+                    <td class="text-gray-400 max-w-[150px] truncate">
+                        {{ finding.assessment.asset.name if finding.assessment and finding.assessment.asset else '-' }}
+                    </td>
+                    <td>
+                        {% if finding.is_overdue %}
+                        <span class="text-red-400 font-medium">{{ finding.days_until_due|abs }} days overdue</span>
+                        {% elif finding.days_until_due is not none and finding.days_until_due <= 7 %}
+                        <span class="text-yellow-400">{{ finding.days_until_due }} days</span>
+                        {% elif finding.days_until_due is not none %}
+                        <span class="text-gray-400">{{ finding.days_until_due }} days</span>
+                        {% elif finding.status.value in ['remediated', 'accepted'] %}
+                        <span class="text-green-400">Closed</span>
+                        {% else %}
+                        <span class="text-gray-500">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-gray-400">{{ finding.created_at.strftime('%Y-%m-%d') }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-gray-500 py-8">
+                        No findings found
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if findings.pages > 1 %}
+    <div class="flex justify-center gap-2">
+        {% if findings.has_prev %}
+        <a href="{{ url_for('findings.index', page=findings.prev_num, **request.args) }}" 
+           class="px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-700">
+            ← Previous
+        </a>
+        {% endif %}
+        
+        <span class="px-4 py-2 text-gray-400">
+            Page {{ findings.page }} of {{ findings.pages }}
+        </span>
+        
+        {% if findings.has_next %}
+        <a href="{{ url_for('findings.index', page=findings.next_num, **request.args) }}" 
+           class="px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-700">
+            Next →
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

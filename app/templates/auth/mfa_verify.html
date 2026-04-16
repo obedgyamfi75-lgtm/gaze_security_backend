@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Verify MFA{% endblock %}
+
+{% block auth_content %}
+<div class="card p-8 w-full max-w-md">
+    <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold text-green-400">🔐 Two-Factor Authentication</h1>
+        <p class="text-gray-400 mt-2">Enter your verification code</p>
+    </div>
+    
+    <form method="POST" action="{{ url_for('auth.mfa_verify') }}" class="space-y-6" id="mfa-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="use_backup" value="false" id="use-backup">
+        
+        <div>
+            <label for="code" class="block text-sm font-medium text-gray-300 mb-2">
+                Verification Code
+            </label>
+            <input 
+                type="text" 
+                id="code" 
+                name="code" 
+                required 
+                autocomplete="one-time-code"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="6"
+                class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-green-400 text-center text-2xl tracking-widest"
+                placeholder="000000"
+                autofocus
+            >
+            <p class="text-gray-500 text-xs mt-2">Enter the 6-digit code from your authenticator app</p>
+        </div>
+        
+        <button 
+            type="submit" 
+            class="w-full btn-primary py-3 rounded-lg font-semibold transition-colors"
+        >
+            Verify
+        </button>
+    </form>
+    
+    <div class="mt-6 pt-6 border-t border-gray-700">
+        <button 
+            type="button" 
+            onclick="toggleBackupCode()"
+            class="text-gray-400 hover:text-green-400 text-sm w-full text-center"
+        >
+            Use a backup code instead
+        </button>
+        
+        <div id="backup-section" class="hidden mt-4">
+            <form method="POST" action="{{ url_for('auth.mfa_verify') }}" class="space-y-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="use_backup" value="true">
+                
+                <div>
+                    <label for="backup-code" class="block text-sm font-medium text-gray-300 mb-2">
+                        Backup Code
+                    </label>
+                    <input 
+                        type="text" 
+                        id="backup-code" 
+                        name="code" 
+                        required 
+                        maxlength="8"
+                        class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-green-400 text-center uppercase tracking-widest"
+                        placeholder="XXXXXXXX"
+                    >
+                </div>
+                
+                <button 
+                    type="submit" 
+                    class="w-full bg-gray-700 hover:bg-gray-600 py-3 rounded-lg font-semibold transition-colors"
+                >
+                    Use Backup Code
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <a href="{{ url_for('auth.login') }}" class="block text-center text-gray-500 hover:text-gray-300 text-sm mt-6">
+        ← Back to login
+    </a>
+</div>
+
+<script>
+function toggleBackupCode() {
+    const section = document.getElementById('backup-section');
+    section.classList.toggle('hidden');
+}
+
+// Auto-submit when 6 digits entered
+document.getElementById('code').addEventListener('input', function(e) {
+    this.value = this.value.replace(/\D/g, '');
+    if (this.value.length === 6) {
+        document.getElementById('mfa-form').submit();
+    }
+});
+</script>
+{% endblock %}

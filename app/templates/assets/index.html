@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Assets{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold">🖥️ Assets</h1>
+        <a href="{{ url_for('assets.create') }}" class="btn-primary px-4 py-2 rounded-lg">
+            + Add Asset
+        </a>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card p-4">
+        <form method="GET" class="flex flex-wrap gap-4 items-end">
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm text-gray-400 mb-1">Search</label>
+                <input 
+                    type="text" 
+                    name="search" 
+                    value="{{ request.args.get('search', '') }}"
+                    placeholder="Search assets..."
+                    class="w-full px-4 py-2 rounded-lg"
+                >
+            </div>
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Type</label>
+                <select name="type" class="px-4 py-2 rounded-lg">
+                    <option value="">All Types</option>
+                    {% for t in asset_types %}
+                    <option value="{{ t.value }}" {{ 'selected' if request.args.get('type') == t.value else '' }}>
+                        {{ t.value.replace('_', ' ').title() }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Criticality</label>
+                <select name="criticality" class="px-4 py-2 rounded-lg">
+                    <option value="">All</option>
+                    {% for c in criticalities %}
+                    <option value="{{ c.value }}" {{ 'selected' if request.args.get('criticality') == c.value else '' }}>
+                        {{ c.value.title() }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg">
+                Filter
+            </button>
+            {% if request.args %}
+            <a href="{{ url_for('assets.index') }}" class="text-gray-400 hover:text-white px-4 py-2">
+                Clear
+            </a>
+            {% endif %}
+        </form>
+    </div>
+    
+    <!-- Assets Table -->
+    <div class="card overflow-hidden">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Criticality</th>
+                    <th>Environment</th>
+                    <th>Open Findings</th>
+                    <th>Assessments</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for asset in assets.items %}
+                <tr class="hover:bg-gray-800 cursor-pointer" onclick="window.location='{{ url_for('assets.view', asset_id=asset.id) }}'">
+                    <td>
+                        <div class="font-medium">{{ asset.name }}</div>
+                        {% if asset.url %}
+                        <div class="text-gray-500 text-sm truncate max-w-xs">{{ asset.url }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="text-sm">{{ asset.asset_type.value.replace('_', ' ').title() }}</span>
+                    </td>
+                    <td>
+                        <span class="px-2 py-1 text-xs rounded 
+                            {% if asset.criticality.value == 'critical' %}bg-red-600
+                            {% elif asset.criticality.value == 'high' %}bg-orange-600
+                            {% elif asset.criticality.value == 'medium' %}bg-yellow-600 text-black
+                            {% else %}bg-green-600{% endif %}">
+                            {{ asset.criticality.value.upper() }}
+                        </span>
+                    </td>
+                    <td class="text-gray-400">{{ asset.environment or '-' }}</td>
+                    <td>
+                        {% if asset.open_findings_count > 0 %}
+                        <span class="text-yellow-400 font-medium">{{ asset.open_findings_count }}</span>
+                        {% else %}
+                        <span class="text-green-400">0</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-gray-400">{{ asset.total_assessments }}</td>
+                    <td class="text-right">
+                        <a href="{{ url_for('assets.edit', asset_id=asset.id) }}" 
+                           class="text-gray-400 hover:text-green-400"
+                           onclick="event.stopPropagation()">
+                            Edit
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-gray-500 py-8">
+                        No assets found. <a href="{{ url_for('assets.create') }}" class="text-green-400 hover:underline">Add your first asset</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if assets.pages > 1 %}
+    <div class="flex justify-center gap-2">
+        {% if assets.has_prev %}
+        <a href="{{ url_for('assets.index', page=assets.prev_num, **request.args) }}" 
+           class="px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-700">
+            ← Previous
+        </a>
+        {% endif %}
+        
+        <span class="px-4 py-2 text-gray-400">
+            Page {{ assets.page }} of {{ assets.pages }}
+        </span>
+        
+        {% if assets.has_next %}
+        <a href="{{ url_for('assets.index', page=assets.next_num, **request.args) }}" 
+           class="px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-700">
+            Next →
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

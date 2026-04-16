@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold">🔧 System Settings</h1>
+    
+    <div class="grid lg:grid-cols-2 gap-6">
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold mb-4">Security Policy</h2>
+            <dl class="space-y-3 text-sm">
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Password Minimum Length</dt>
+                    <dd>12 characters</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Max Login Attempts</dt>
+                    <dd>5 attempts</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Lockout Duration</dt>
+                    <dd>30 minutes</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Session Timeout (Idle)</dt>
+                    <dd>15 minutes</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Session Timeout (Absolute)</dt>
+                    <dd>8 hours</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">MFA Required Roles</dt>
+                    <dd>Admin, SuperAdmin, Security Lead</dd>
+                </div>
+            </dl>
+        </div>
+        
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold mb-4">SLA Configuration</h2>
+            <dl class="space-y-3 text-sm">
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Critical Severity</dt>
+                    <dd class="text-red-400">7 days</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">High Severity</dt>
+                    <dd class="text-orange-400">30 days</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Medium Severity</dt>
+                    <dd class="text-yellow-400">90 days</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Low Severity</dt>
+                    <dd class="text-green-400">180 days</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Informational</dt>
+                    <dd class="text-gray-500">No SLA</dd>
+                </div>
+            </dl>
+        </div>
+        
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold mb-4">System Information</h2>
+            <dl class="space-y-3 text-sm">
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Version</dt>
+                    <dd>2.0.0</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Environment</dt>
+                    <dd>{{ config.FLASK_ENV }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Database</dt>
+                    <dd>PostgreSQL</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Session Store</dt>
+                    <dd>Redis</dd>
+                </div>
+            </dl>
+        </div>
+        
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold mb-4">File Upload</h2>
+            <dl class="space-y-3 text-sm">
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Max File Size</dt>
+                    <dd>25 MB</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Virus Scanning</dt>
+                    <dd class="text-green-400">Enabled (ClamAV)</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Allowed Types</dt>
+                    <dd>Images, PDF, Text, JSON, XML</dd>
+                </div>
+            </dl>
+        </div>
+    </div>
+    
+    <div class="card p-6">
+        <h2 class="text-lg font-semibold mb-4">⚠️ Danger Zone</h2>
+        <p class="text-gray-400 text-sm mb-4">These actions are irreversible. Please proceed with caution.</p>
+        <div class="flex gap-4">
+            <button disabled class="bg-gray-700 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed">
+                Export All Data
+            </button>
+            <button disabled class="bg-gray-700 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed">
+                Clear Audit Logs
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}

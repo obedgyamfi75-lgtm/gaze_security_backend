@@ -1,0 +1,169 @@
+# =============================================================================
+# GAZE Security Platform - Caddy Configuration
+# Security-first reverse proxy configuration
+# =============================================================================
+
+{
+    # Global options
+    email {$ADMIN_EMAIL:admin@hubtel.com}
+    
+    # Security: Disable admin API in production
+    admin off
+    
+    # Logging
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}
+
+{$DOMAIN:localhost} {
+    # ==========================================================================
+    # TLS Configuration
+    # ==========================================================================
+    tls {
+        protocols tls1.3
+        ciphers TLS_AES_256_GCM_SHA384 TLS_CHACHA20_POLY1305_SHA256
+    }
+
+    # ==========================================================================
+    # Security Headers
+    # ==========================================================================
+    header {
+        # HSTS - Force HTTPS for 2 years, include subdomains
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        
+        # Prevent clickjacking
+        X-Frame-Options "DENY"
+        
+        # Prevent MIME type sniffing
+        X-Content-Type-Options "nosniff"
+        
+        # XSS Protection (legacy browsers)
+        X-XSS-Protection "1; mode=block"
+        
+        # Referrer Policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        
+        # Content Security Policy
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        
+        # Permissions Policy
+        Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+        
+        # Remove server header
+        -Server
+        
+        # Cache control for security
+        Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate"
+        Pragma "no-cache"
+    }
+
+    # ==========================================================================
+    # Rate Limiting
+    # ==========================================================================
+    
+    # Auth endpoints - strict rate limiting (10 req/min)
+    @auth_paths {
+        path /auth/* /login /logout /mfa/*
+    }
+    rate_limit @auth_paths {
+        zone auth_zone {
+            key {remote_host}
+            events 10
+            window 1m
+        }
+    }
+
+    # API endpoints - moderate rate limiting (100 req/min)
+    @api_paths {
+        path /api/*
+    }
+    rate_limit @api_paths {
+        zone api_zone {
+            key {remote_host}
+            events 100
+            window 1m
+        }
+    }
+
+    # General pages - relaxed rate limiting (200 req/min)
+    rate_limit {
+        zone general_zone {
+            key {remote_host}
+            events 200
+            window 1m
+        }
+    }
+
+    # ==========================================================================
+    # Request Size Limits
+    # ==========================================================================
+    request_body {
+        max_size 25MB
+    }
+
+    # ==========================================================================
+    # Blocked Paths
+    # ==========================================================================
+    @blocked {
+        path /.* /wp-* /admin* /phpmyadmin* /*.php /*.asp /*.aspx
+    }
+    respond @blocked 404
+
+    # ==========================================================================
+    # Static Files (with caching)
+    # ==========================================================================
+    @static {
+        path /static/*
+    }
+    handle @static {
+        header Cache-Control "public, max-age=31536000, immutable"
+        reverse_proxy app:8000
+    }
+
+    # ==========================================================================
+    # Health Check (no auth, no logging)
+    # ==========================================================================
+    @health {
+        path /health
+    }
+    handle @health {
+        reverse_proxy app:8000
+    }
+
+    # ==========================================================================
+    # Main Application
+    # ==========================================================================
+    reverse_proxy app:8000 {
+        # Timeouts
+        transport http {
+            read_timeout 30s
+            write_timeout 30s
+            response_header_timeout 30s
+        }
+        
+        # Health checks
+        health_uri /health
+        health_interval 30s
+        health_timeout 10s
+        
+        # Headers to backend
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Request-ID {uuid}
+    }
+
+    # ==========================================================================
+    # Logging
+    # ==========================================================================
+    log {
+        output stdout
+        format json {
+            time_format iso8601
+        }
+        level INFO
+    }
+}

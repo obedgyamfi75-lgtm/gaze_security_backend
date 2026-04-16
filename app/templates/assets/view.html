@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}{{ asset.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-start">
+        <div>
+            <a href="{{ url_for('assets.index') }}" class="text-gray-400 hover:text-white text-sm">← Back to Assets</a>
+            <h1 class="text-2xl font-bold mt-2">{{ asset.name }}</h1>
+            <div class="flex items-center gap-3 mt-2">
+                <span class="px-2 py-1 text-xs rounded 
+                    {% if asset.criticality.value == 'critical' %}bg-red-600
+                    {% elif asset.criticality.value == 'high' %}bg-orange-600
+                    {% elif asset.criticality.value == 'medium' %}bg-yellow-600 text-black
+                    {% else %}bg-green-600{% endif %}">
+                    {{ asset.criticality.value.upper() }}
+                </span>
+                <span class="text-gray-400">{{ asset.asset_type.value.replace('_', ' ').title() }}</span>
+                {% if asset.environment %}
+                <span class="text-gray-500">• {{ asset.environment }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <a href="{{ url_for('assessments.create') }}?asset_id={{ asset.id }}" class="btn-primary px-4 py-2 rounded-lg">
+                + New Assessment
+            </a>
+            <a href="{{ url_for('assets.edit', asset_id=asset.id) }}" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg">
+                Edit
+            </a>
+        </div>
+    </div>
+    
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="card p-4 text-center">
+            <p class="text-3xl font-bold">{{ asset.total_assessments }}</p>
+            <p class="text-gray-400 text-sm">Assessments</p>
+        </div>
+        <div class="card p-4 text-center">
+            <p class="text-3xl font-bold text-yellow-400">{{ asset.open_findings_count }}</p>
+            <p class="text-gray-400 text-sm">Open Findings</p>
+        </div>
+        <div class="card p-4 text-center">
+            <p class="text-3xl font-bold text-green-400">
+                {% set closed = namespace(count=0) %}
+                {% for a in asset.assessments %}
+                    {% for f in a.findings if f.status.value == 'remediated' %}
+                        {% set closed.count = closed.count + 1 %}
+                    {% endfor %}
+                {% endfor %}
+                {{ closed.count }}
+            </p>
+            <p class="text-gray-400 text-sm">Remediated</p>
+        </div>
+        <div class="card p-4 text-center">
+            <p class="text-gray-400 text-sm">Last Assessment</p>
+            <p class="text-lg">
+                {% if asset.assessments %}
+                    {{ asset.assessments[-1].created_at.strftime('%Y-%m-%d') }}
+                {% else %}
+                    Never
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    
+    <!-- Details -->
+    <div class="grid lg:grid-cols-2 gap-6">
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold mb-4">Technical Details</h2>
+            <dl class="space-y-3">
+                {% if asset.url %}
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">URL</dt>
+                    <dd><a href="{{ asset.url }}" target="_blank" class="text-green-400 hover:underline">{{ asset.url }}</a></dd>
+                </div>
+                {% endif %}
+                {% if asset.ip_address %}
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">IP Address</dt>
+                    <dd class="font-mono">{{ asset.ip_address }}</dd>
+                </div>
+                {% endif %}
+                {% if asset.hostname %}
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Hostname</dt>
+                    <dd class="font-mono">{{ asset.hostname }}</dd>
+                </div>
+                {% endif %}
+            </dl>
+        </div>
+        
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold mb-4">Ownership</h2>
+            <dl class="space-y-3">
+                {% if asset.business_owner %}
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Business Owner</dt>
+                    <dd>{{ asset.business_owner }}</dd>
+                </div>
+                {% endif %}
+                {% if asset.technical_owner %}
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Technical Owner</dt>
+                    <dd>{{ asset.technical_owner }}</dd>
+                </div>
+                {% endif %}
+                {% if asset.team %}
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Team</dt>
+                    <dd>{{ asset.team }}</dd>
+                </div>
+                {% endif %}
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Created By</dt>
+                    <dd>{{ asset.created_by.full_name if asset.created_by else 'Unknown' }}</dd>
+                </div>
+            </dl>
+        </div>
+    </div>
+    
+    {% if asset.description %}
+    <div class="card p-6">
+        <h2 class="text-lg font-semibold mb-4">Description</h2>
+        <p class="text-gray-300">{{ asset.description }}</p>
+    </div>
+    {% endif %}
+    
+    <!-- Assessments -->
+    <div class="card p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold">Assessments</h2>
+            <a href="{{ url_for('assessments.create') }}?asset_id={{ asset.id }}" class="text-green-400 hover:underline text-sm">
+                + New Assessment
+            </a>
+        </div>
+        
+        {% if asset.assessments %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Findings</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for assessment in asset.assessments|sort(attribute='created_at', reverse=True) %}
+                <tr class="hover:bg-gray-800 cursor-pointer" onclick="window.location='{{ url_for('assessments.view', assessment_id=assessment.id) }}'">
+                    <td class="font-medium">{{ assessment.name }}</td>
+                    <td class="text-gray-400">{{ assessment.assessment_type.value.replace('_', ' ').title() }}</td>
+                    <td>
+                        <span class="px-2 py-1 text-xs rounded 
+                            {% if assessment.status.value == 'completed' %}bg-green-600
+                            {% elif assessment.status.value == 'in_progress' %}bg-yellow-600 text-black
+                            {% else %}bg-gray-600{% endif %}">
+                            {{ assessment.status.value.replace('_', ' ').title() }}
+                        </span>
+                    </td>
+                    <td>
+                        {% set counts = assessment.findings_count %}
+                        {% if counts.critical %}<span class="text-red-400">{{ counts.critical }}C</span> {% endif %}
+                        {% if counts.high %}<span class="text-orange-400">{{ counts.high }}H</span> {% endif %}
+                        {% if counts.medium %}<span class="text-yellow-400">{{ counts.medium }}M</span> {% endif %}
+                        {% if counts.low %}<span class="text-green-400">{{ counts.low }}L</span>{% endif %}
+                        {% if not (counts.critical or counts.high or counts.medium or counts.low) %}
+                        <span class="text-gray-500">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-gray-400">{{ assessment.created_at.strftime('%Y-%m-%d') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-gray-500 text-center py-8">No assessments yet</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

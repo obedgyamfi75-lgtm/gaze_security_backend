@@ -1,0 +1,32 @@
+# Development Dockerfile - includes dev tools
+FROM python:3.12-slim-bookworm
+
+RUN groupadd -r secops && useradd -r -g secops -d /app -s /sbin/nologin secops
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    libpq-dev \
+    libmagic1 \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements/ ./requirements/
+RUN pip install --no-cache-dir -r requirements/base.txt \
+    -r requirements/security.txt \
+    -r requirements/dev.txt
+
+COPY --chown=secops:secops app/ ./app/
+COPY --chown=secops:secops migrations/ ./migrations/
+COPY --chown=secops:secops run.py config.py ./
+
+RUN mkdir -p /app/evidence /app/logs \
+    && chown -R secops:secops /app
+
+USER secops
+
+EXPOSE 8000
+
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--reload", "app:create_app()"]

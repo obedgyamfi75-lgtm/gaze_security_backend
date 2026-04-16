@@ -1,0 +1,141 @@
+# =============================================================================
+# GAZE Security Platform - Docker Compose
+# =============================================================================
+# Compatible with Docker Desktop on Windows/WSL2
+# =============================================================================
+
+services:
+  # =============================================================================
+  # REVERSE PROXY - Caddy (Auto TLS, Rate Limiting)
+  # =============================================================================
+  caddy:
+    build:
+      context: .
+      dockerfile: docker/caddy/Dockerfile
+    image: caddy:2-alpine
+    container_name: secops-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - frontend
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+
+  # =============================================================================
+  # APPLICATION - Flask + Gunicorn
+  # =============================================================================
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    container_name: secops-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000" # Expose port 8000 on the host
+    volumes:
+      - evidence_data:/app/evidence
+    environment:
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - FLASK_APP=run.py
+      - SECRET_KEY=${SECRET_KEY:-change-this-in-production-use-random-string}
+      - DATABASE_URL=postgresql://${DB_USER:-secops}:${DB_PASS:-secops}@postgres:5432/${DB_NAME:-secops}
+      - REDIS_URL=redis://:${REDIS_PASS:-redispass}@redis:6379/0
+      - EVIDENCE_PATH=/app/evidence
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost}
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # =============================================================================
+  # DATABASE - PostgreSQL
+  # =============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: secops-postgres
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    environment:
+      - POSTGRES_USER=${DB_USER:-secops}
+      - POSTGRES_PASSWORD=${DB_PASS:-secops}
+      - POSTGRES_DB=${DB_NAME:-secops}
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # =============================================================================
+  # CACHE/SESSIONS - Redis
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: secops-redis
+    restart: unless-stopped
+    networks:
+      - backend
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASS:-redispass}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "$${REDIS_PASS:-redispass}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =============================================================================
+  # PDF SANDBOX - WeasyPrint (Isolated PDF Generation)
+  # =============================================================================
+  pdf-sandbox:
+    build:
+      context: .
+      dockerfile: docker/nsjail/Dockerfile
+    container_name: secops-pdf-sandbox
+    restart: unless-stopped
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "python", "-c", "import weasyprint; print('ok')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+  postgres_data:
+  evidence_data:

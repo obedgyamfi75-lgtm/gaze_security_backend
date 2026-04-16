@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}{{ user.full_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="flex justify-between items-start">
+        <div>
+            <a href="{{ url_for('admin.users') }}" class="text-gray-400 hover:text-white text-sm">← Back to Users</a>
+            <h1 class="text-2xl font-bold mt-2">{{ user.full_name }}</h1>
+            <p class="text-gray-400">{{ user.email }}</p>
+        </div>
+        <div class="flex gap-2">
+            {% if user.lockout_until %}
+            <form method="POST" action="{{ url_for('admin.unlock_user', user_id=user.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded-lg">🔓 Unlock</button>
+            </form>
+            {% endif %}
+            {% if user.is_active and user.id != current_user.id %}
+            <form method="POST" action="{{ url_for('admin.deactivate_user', user_id=user.id) }}" onsubmit="return confirm('Deactivate this user?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg">Deactivate</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="grid lg:grid-cols-2 gap-6">
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold mb-4">Account Information</h2>
+            <dl class="space-y-3">
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Status</dt>
+                    <dd>
+                        {% if user.is_active %}
+                        <span class="text-green-400">Active</span>
+                        {% else %}
+                        <span class="text-red-400">Inactive</span>
+                        {% endif %}
+                        {% if user.lockout_until %}
+                        <span class="text-yellow-400 text-xs ml-2">(Locked until {{ user.lockout_until.strftime('%H:%M') }})</span>
+                        {% endif %}
+                    </dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Role</dt>
+                    <dd>
+                        <span class="px-2 py-1 text-xs rounded 
+                            {% if user.role == 'superadmin' %}bg-purple-600
+                            {% elif user.role == 'admin' %}bg-blue-600
+                            {% elif user.role == 'security_lead' %}bg-green-600
+                            {% else %}bg-gray-600{% endif %}">
+                            {{ user.role.replace('_', ' ').title() }}
+                        </span>
+                    </dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">MFA</dt>
+                    <dd>
+                        {% if user.mfa_enabled %}
+                        <span class="text-green-400">✓ Enabled</span>
+                        {% else %}
+                        <span class="text-gray-500">Disabled</span>
+                        {% endif %}
+                    </dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Created</dt>
+                    <dd>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+                </div>
+            </dl>
+        </div>
+        
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold mb-4">Login Activity</h2>
+            <dl class="space-y-3">
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Last Login</dt>
+                    <dd>{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Last Login IP</dt>
+                    <dd class="font-mono">{{ user.last_login_ip or '-' }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Failed Attempts</dt>
+                    <dd class="{% if user.failed_login_attempts > 0 %}text-yellow-400{% endif %}">
+                        {{ user.failed_login_attempts }}
+                    </dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-400">Password Changed</dt>
+                    <dd>{{ user.password_changed_at.strftime('%Y-%m-%d') if user.password_changed_at else 'Never' }}</dd>
+                </div>
+            </dl>
+        </div>
+    </div>
+    
+    <div class="card p-6">
+        <h2 class="text-lg font-semibold mb-4">Change Role</h2>
+        <form method="POST" action="{{ url_for('admin.update_role', user_id=user.id) }}" class="flex gap-4 items-end">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="flex-1">
+                <label for="role" class="block text-sm text-gray-400 mb-2">Role</label>
+                <select id="role" name="role" class="w-full px-4 py-2 rounded-lg" {% if user.id == current_user.id %}disabled{% endif %}>
+                    <option value="analyst" {{ 'selected' if user.role == 'analyst' else '' }}>Analyst</option>
+                    <option value="security_lead" {{ 'selected' if user.role == 'security_lead' else '' }}>Security Lead</option>
+                    <option value="admin" {{ 'selected' if user.role == 'admin' else '' }}>Admin</option>
+                    <option value="developer" {{ 'selected' if user.role == 'developer' else '' }}>Developer (Read-only)</option>
+                    {% if current_user.role == 'superadmin' %}
+                    <option value="superadmin" {{ 'selected' if user.role == 'superadmin' else '' }}>Super Admin</option>
+                    {% endif %}
+                </select>
+            </div>
+            <button type="submit" class="bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded-lg" {% if user.id == current_user.id %}disabled{% endif %}>
+                Update Role
+            </button>
+        </form>
+        {% if user.id == current_user.id %}
+        <p class="text-gray-500 text-sm mt-2">You cannot change your own role</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

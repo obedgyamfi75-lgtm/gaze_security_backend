@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold">📊 Security Dashboard</h1>
+        <span class="text-gray-400 text-sm">Last updated: <span id="last-updated">just now</span></span>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="card p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-400 text-sm">Total Assets</p>
+                    <p class="text-3xl font-bold mt-1">{{ stats.total_assets }}</p>
+                </div>
+                <span class="text-4xl">🖥️</span>
+            </div>
+        </div>
+        
+        <div class="card p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-400 text-sm">Active Findings</p>
+                    <p class="text-3xl font-bold mt-1 text-yellow-400">{{ stats.active_findings }}</p>
+                </div>
+                <span class="text-4xl">🐛</span>
+            </div>
+        </div>
+        
+        <div class="card p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-400 text-sm">Overdue</p>
+                    <p class="text-3xl font-bold mt-1 text-red-400">{{ stats.overdue_findings }}</p>
+                </div>
+                <span class="text-4xl">⚠️</span>
+            </div>
+        </div>
+        
+        <div class="card p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-400 text-sm">Closed This Month</p>
+                    <p class="text-3xl font-bold mt-1 text-green-400">{{ stats.closed_this_month }}</p>
+                </div>
+                <span class="text-4xl">✅</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row -->
+    <div class="grid lg:grid-cols-2 gap-6">
+        <!-- Severity Distribution -->
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold mb-4">Severity Distribution</h2>
+            <canvas id="severityChart" height="200"></canvas>
+        </div>
+        
+        <!-- Findings Trend -->
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold mb-4">Findings Trend (12 Months)</h2>
+            <canvas id="trendChart" height="200"></canvas>
+        </div>
+    </div>
+    
+    <!-- Severity Breakdown Bar -->
+    <div class="card p-6">
+        <h2 class="text-lg font-semibold mb-4">Open Findings by Severity</h2>
+        <div class="flex h-8 rounded-lg overflow-hidden">
+            {% set total = stats.severity_counts.values()|sum or 1 %}
+            {% if stats.severity_counts.critical %}
+            <div class="severity-critical flex items-center justify-center text-xs font-bold" 
+                 style="width: {{ (stats.severity_counts.critical / total * 100)|round }}%"
+                 title="Critical: {{ stats.severity_counts.critical }}">
+                {{ stats.severity_counts.critical }}
+            </div>
+            {% endif %}
+            {% if stats.severity_counts.high %}
+            <div class="severity-high flex items-center justify-center text-xs font-bold" 
+                 style="width: {{ (stats.severity_counts.high / total * 100)|round }}%"
+                 title="High: {{ stats.severity_counts.high }}">
+                {{ stats.severity_counts.high }}
+            </div>
+            {% endif %}
+            {% if stats.severity_counts.medium %}
+            <div class="severity-medium flex items-center justify-center text-xs font-bold text-black" 
+                 style="width: {{ (stats.severity_counts.medium / total * 100)|round }}%"
+                 title="Medium: {{ stats.severity_counts.medium }}">
+                {{ stats.severity_counts.medium }}
+            </div>
+            {% endif %}
+            {% if stats.severity_counts.low %}
+            <div class="severity-low flex items-center justify-center text-xs font-bold" 
+                 style="width: {{ (stats.severity_counts.low / total * 100)|round }}%"
+                 title="Low: {{ stats.severity_counts.low }}">
+                {{ stats.severity_counts.low }}
+            </div>
+            {% endif %}
+            {% if stats.severity_counts.informational %}
+            <div class="bg-blue-600 flex items-center justify-center text-xs font-bold" 
+                 style="width: {{ (stats.severity_counts.informational / total * 100)|round }}%"
+                 title="Info: {{ stats.severity_counts.informational }}">
+                {{ stats.severity_counts.informational }}
+            </div>
+            {% endif %}
+        </div>
+        <div class="flex justify-between mt-2 text-xs text-gray-400">
+            <span>🔴 Critical</span>
+            <span>🟠 High</span>
+            <span>🟡 Medium</span>
+            <span>🟢 Low</span>
+            <span>🔵 Info</span>
+        </div>
+    </div>
+    
+    <!-- Bottom Row -->
+    <div class="grid lg:grid-cols-2 gap-6">
+        <!-- Overdue Findings -->
+        <div class="card p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold">⚠️ Overdue Findings</h2>
+                <a href="{{ url_for('findings.index') }}?status=open" class="text-green-400 text-sm hover:underline">
+                    View all →
+                </a>
+            </div>
+            <div id="overdue-list" class="space-y-3">
+                <p class="text-gray-500 text-sm">Loading...</p>
+            </div>
+        </div>
+        
+        <!-- Quick Stats -->
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold mb-4">📈 Performance Metrics</h2>
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-400">Mean Time to Remediate (MTTR)</span>
+                    <span class="text-xl font-bold">
+                        {% if stats.mttr_days %}
+                            {{ stats.mttr_days }} days
+                        {% else %}
+                            --
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-400">Assessments This Quarter</span>
+                    <span class="text-xl font-bold">{{ stats.assessments_this_quarter }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-400">SLA Compliance</span>
+                    <span class="text-xl font-bold {% if stats.active_findings > 0 %}{{ 'text-green-400' if stats.overdue_findings == 0 else 'text-red-400' }}{% endif %}">
+                        {% if stats.active_findings > 0 %}
+                            {{ ((stats.active_findings - stats.overdue_findings) / stats.active_findings * 100)|round|int }}%
+                        {% else %}
+                            100%
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Color scheme
+    const colors = {
+        critical: '#dc2626',
+        high: '#ea580c',
+        medium: '#ca8a04',
+        low: '#16a34a',
+        informational: '#2563eb'
+    };
+    
+    // Severity Distribution Chart
+    const severityData = {{ stats.severity_counts|tojson }};
+    new Chart(document.getElementById('severityChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Critical', 'High', 'Medium', 'Low', 'Informational'],
+            datasets: [{
+                data: [
+                    severityData.critical,
+                    severityData.high,
+                    severityData.medium,
+                    severityData.low,
+                    severityData.informational
+                ],
+                backgroundColor: [
+                    colors.critical,
+                    colors.high,
+                    colors.medium,
+                    colors.low,
+                    colors.informational
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { color: '#a1a1aa' }
+                }
+            }
+        }
+    });
+    
+    // Fetch and render trend chart
+    fetch('{{ url_for("dashboard.api_findings_trend") }}')
+        .then(r => r.json())
+        .then(data => {
+            const labels = data.map(d => d.month);
+            new Chart(document.getElementById('trendChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Critical',
+                            data: data.map(d => d.critical),
+                            borderColor: colors.critical,
+                            backgroundColor: colors.critical + '20',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'High',
+                            data: data.map(d => d.high),
+                            borderColor: colors.high,
+                            backgroundColor: colors.high + '20',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Medium',
+                            data: data.map(d => d.medium),
+                            borderColor: colors.medium,
+                            backgroundColor: colors.medium + '20',
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            grid: { color: '#333' },
+                            ticks: { color: '#a1a1aa' }
+                        },
+                        y: {
+                            grid: { color: '#333' },
+                            ticks: { color: '#a1a1aa' },
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#a1a1aa' }
+                        }
+                    }
+                }
+            });
+        });
+    
+    // Fetch overdue findings
+    fetch('{{ url_for("dashboard.api_overdue_findings") }}')
+        .then(r => r.json())
+        .then(data => {
+            const container = document.getElementById('overdue-list');
+            if (data.length === 0) {
+                container.innerHTML = '<p class="text-green-400">✓ No overdue findings</p>';
+                return;
+            }
+            
+            container.innerHTML = data.map(f => `
+                <a href="/findings/${f.id}" class="block p-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium truncate">${f.title}</p>
+                            <p class="text-sm text-gray-400">${f.asset || 'Unknown asset'}</p>
+                        </div>
+                        <div class="text-right ml-4">
+                            <span class="inline-block px-2 py-1 text-xs rounded severity-${f.severity}">${f.severity.toUpperCase()}</span>
+                            <p class="text-red-400 text-xs mt-1">${f.days_overdue} days overdue</p>
+                        </div>
+                    </div>
+                </a>
+            `).join('');
+        });
+});
+</script>
+{% endblock %}
