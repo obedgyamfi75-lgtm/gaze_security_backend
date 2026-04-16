@@ -171,7 +171,7 @@ class DevelopmentConfig(Config):
     PREFERRED_URL_SCHEME: str = "http"
 
     model_config = {
-        "env_file": ".env.dev",
+        "env_file": ".env.dev" if os.path.exists(".env.dev") else None,
         "case_sensitive": True,
     }
 
